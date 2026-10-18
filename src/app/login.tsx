@@ -25,6 +25,7 @@ export default function LoginScreen() {
     clearError,
     allowedDomain,
     isGoogleAuthConfigured,
+    redirectUri,
   } = useAuth();
 
   // State for static domain policy checker (does NOT grant session)
@@ -113,6 +114,16 @@ export default function LoginScreen() {
                 label="Continue with Google"
               />
             </View>
+
+            {/* Configured OAuth Redirect URI */}
+            {redirectUri ? (
+              <View style={styles.redirectUriBox}>
+                <Text style={styles.redirectUriLabel}>OAuth Authorized Redirect URI:</Text>
+                <Text style={styles.redirectUriValue} selectable={true}>
+                  {redirectUri}
+                </Text>
+              </View>
+            ) : null}
 
             {/* Divider */}
             <View style={styles.dividerWrap}>
@@ -409,5 +420,27 @@ const styles = StyleSheet.create({
   metaClientText: {
     fontSize: 11,
     color: '#94A3B8',
+  },
+  redirectUriBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 10,
+    marginBottom: 8,
+  },
+  redirectUriLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 3,
+  },
+  redirectUriValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0284C7',
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
 });

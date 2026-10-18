@@ -15,6 +15,7 @@ interface AuthContextType extends AuthState {
   auditLogs: AuthAuditLog[];
   registeredUsers: UserProfile[];
   isGoogleAuthConfigured: boolean;
+  redirectUri: string;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -45,6 +46,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     activeClientId && activeClientId.trim().length > 5
   );
 
+  // Determine active redirect URI for Web (window.location.origin)
+  const webRedirectUri =
+    Platform.OS === 'web' && typeof window !== 'undefined'
+      ? window.location.origin
+      : undefined;
+
   // Setup Expo Google Auth Request
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: activeClientId || 'unconfigured-client-id.apps.googleusercontent.com',
@@ -52,6 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     androidClientId: ENV_CONFIG.GOOGLE.ANDROID_CLIENT_ID || undefined,
     webClientId: ENV_CONFIG.GOOGLE.WEB_CLIENT_ID || undefined,
     scopes: ['openid', 'profile', 'email'],
+    redirectUri: webRedirectUri,
   });
 
   // Refresh persisted data
@@ -249,6 +257,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         auditLogs,
         registeredUsers,
         isGoogleAuthConfigured,
+        redirectUri: request?.redirectUri || webRedirectUri || '',
         loginWithGoogle,
         logout,
         clearError,
