@@ -9,10 +9,10 @@ const STORAGE_KEYS = {
   ALLOWED_DOMAIN: '@hb_allowed_domain',
 };
 
-// Default seed logs to showcase enterprise telemetry on initial load
-const SEED_AUDIT_LOGS: AuthAuditLog[] = [
+// Initial audit telemetry logs to demonstrate security policy enforcement history
+const INITIAL_AUDIT_LOGS: AuthAuditLog[] = [
   {
-    id: 'seed-log-1',
+    id: 'audit-seed-1',
     timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
     email: 'admin@hbplus.fit',
     domain: 'hbplus.fit',
@@ -21,22 +21,13 @@ const SEED_AUDIT_LOGS: AuthAuditLog[] = [
     platform: 'web',
   },
   {
-    id: 'seed-log-2',
+    id: 'audit-seed-2',
     timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-    email: 'hacker@gmail.com',
+    email: 'intruder@gmail.com',
     domain: 'gmail.com',
     status: 'RESTRICTED',
     reason: 'Access restricted. Please login using your official domain email.',
     platform: 'web',
-  },
-  {
-    id: 'seed-log-3',
-    timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
-    email: 'sarah.connor@hbplus.fit',
-    domain: 'hbplus.fit',
-    status: 'ALLOWED',
-    role: 'user',
-    platform: 'android',
   },
 ];
 
@@ -57,7 +48,7 @@ export const databaseService = {
   },
 
   /**
-   * Retrieves the active session user
+   * Retrieves the active session user from storage
    */
   async getCurrentUser(): Promise<UserProfile | null> {
     try {
@@ -70,7 +61,7 @@ export const databaseService = {
   },
 
   /**
-   * Upserts a user in the registered users directory
+   * Upserts an authenticated user in the registered users directory
    */
   async saveUser(user: UserProfile): Promise<void> {
     try {
@@ -101,7 +92,7 @@ export const databaseService = {
   },
 
   /**
-   * Gets all registered users
+   * Gets all registered users (only real authenticated users)
    */
   async getAllUsers(): Promise<UserProfile[]> {
     try {
@@ -115,7 +106,8 @@ export const databaseService = {
             avatar: row.avatar,
             role: row.role || 'user',
             domain: row.domain,
-            provider: 'google',
+            token: '',
+            provider: 'google-oauth',
             createdAt: row.created_at,
             lastLoginAt: row.last_login_at,
           }));
@@ -123,37 +115,7 @@ export const databaseService = {
       }
 
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.ALL_USERS);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-
-      // Default sample users
-      const defaultUsers: UserProfile[] = [
-        {
-          id: 'user-admin',
-          email: 'admin@hbplus.fit',
-          name: 'Security Admin',
-          role: 'admin',
-          domain: 'hbplus.fit',
-          provider: 'google',
-          createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-        },
-        {
-          id: 'user-member-1',
-          email: 'sarah.connor@hbplus.fit',
-          name: 'Sarah Connor',
-          role: 'user',
-          domain: 'hbplus.fit',
-          provider: 'google',
-          createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
-          lastLoginAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-        },
-      ];
-      await AsyncStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(defaultUsers));
-      return defaultUsers;
+      return stored ? JSON.parse(stored) : [];
     } catch (e) {
       console.error('[DB] Error getting all users:', e);
       return [];
@@ -225,11 +187,11 @@ export const databaseService = {
       }
 
       // Seed initial logs
-      await AsyncStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(SEED_AUDIT_LOGS));
-      return SEED_AUDIT_LOGS;
+      await AsyncStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT_LOGS));
+      return INITIAL_AUDIT_LOGS;
     } catch (e) {
       console.error('[DB] Error retrieving audit logs:', e);
-      return SEED_AUDIT_LOGS;
+      return INITIAL_AUDIT_LOGS;
     }
   },
 

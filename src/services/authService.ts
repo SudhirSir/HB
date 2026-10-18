@@ -1,6 +1,11 @@
 import * as WebBrowser from 'expo-web-browser';
 import { UserProfile, AuthAuditLog } from '@/types/auth';
-import { validateDomain, determineUserRole, extractDomain } from './domainValidator';
+import {
+  validateGoogleClaims,
+  determineUserRole,
+  extractDomain,
+  EXACT_RESTRICTION_ERROR,
+} from './domainValidator';
 import { databaseService } from './databaseService';
 import { getPlatformType } from '@/utils/platform';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
@@ -15,48 +20,106 @@ export interface ProcessAuthResult {
   auditLog: AuthAuditLog;
 }
 
+export interface GoogleUserInfo {
+  sub: string;
+  email: string;
+  email_verified: boolean;
+  name?: string;
+  picture?: string;
+  hd?: string; // Hosted domain in Google Workspace
+}
+
 export const authService = {
   /**
-   * Processes and validates an authenticated Google user profile against domain restriction.
-   * This is the single gatekeeper for both live Google OAuth and simulated OAuth.
+   * Fetches the authenticated Google profile directly from Google's UserInfo API
+   * using the OAuth 2.0 access token.
    */
-  async processGoogleUser(
-    googlePayload: {
-      id: string;
-      email: string;
-      name: string;
-      picture?: string;
-      token?: string;
-    },
+  async fetchGoogleUserInfo(accessToken: string): Promise<GoogleUserInfo> {
+    if (!accessToken || typeof accessToken !== 'string') {
+      throw new Error('Missing or invalid OAuth access token.');
+    }
+
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error('Google OAuth token is invalid or expired.');
+      }
+      throw new Error(`Failed to fetch Google profile (status ${res.status}): ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return {
+      sub: data.sub,
+      email: data.email,
+      email_verified: Boolean(data.email_verified),
+      name: data.name,
+      picture: data.picture,
+      hd: data.hd,
+    };
+  },
+
+  /**
+   * Verifies an access token against Google's tokeninfo endpoint to confirm it is valid and not revoked.
+   */
+  async verifyGoogleToken(accessToken: string): Promise<boolean> {
+    if (!accessToken) return false;
+    try {
+      const res = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
+      );
+      if (!res.ok) return false;
+      const data = await res.json();
+      return Boolean(data.email && !data.error);
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Processes an authenticated Google OAuth response:
+   * 1. Validates verified email claim (rejects unverified claims).
+   * 2. Strictly enforces domain matching (@hbplus.fit).
+   * 3. On mismatch: rejects, records RESTRICTED audit log, purges session.
+   * 4. On match: creates session, records ALLOWED audit log, persists user.
+   */
+  async processGoogleOAuthUser(
+    googleInfo: GoogleUserInfo,
+    accessToken: string,
     allowedDomain: string,
-    provider: 'google' | 'google-oauth' | 'google-simulated' = 'google'
+    expiresIn?: number
   ): Promise<ProcessAuthResult> {
-    const { email, name, picture, token } = googlePayload;
+    const { email, name, picture, email_verified, sub } = googleInfo;
     const domain = extractDomain(email);
     const platform = getPlatformType();
 
-    // 1. Strict Domain Validation
-    const validation = validateDomain(email, allowedDomain);
+    // 1. Validate Google OAuth Claims (verified email + exact domain match)
+    const validation = validateGoogleClaims(
+      { email, email_verified },
+      allowedDomain
+    );
 
     if (!validation.isValid) {
-      const errorMsg =
-        validation.errorMessage ||
-        'Access restricted. Please login using your official domain email.';
+      const errorMsg = validation.errorMessage || EXACT_RESTRICTION_ERROR;
 
       // Record security audit log for restricted attempt
       const auditLog = await databaseService.recordAuditLog({
         timestamp: new Date().toISOString(),
-        email,
+        email: email || 'unknown',
         domain: domain || 'unknown',
         status: 'RESTRICTED',
         reason: errorMsg,
         platform,
       });
 
-      // Clear any stored user session
+      // Ensure NO user session exists
       await databaseService.setCurrentUser(null);
 
-      // Return failure - access blocked
       return {
         success: false,
         error: errorMsg,
@@ -67,9 +130,12 @@ export const authService = {
     // 2. Domain Validation Passed - Grant Access
     const role = determineUserRole(email);
     const now = new Date().toISOString();
+    const tokenExpiresAt = expiresIn
+      ? Date.now() + expiresIn * 1000
+      : Date.now() + 3600 * 1000; // default 1 hour expiration
 
     const userProfile: UserProfile = {
-      id: googlePayload.id || `google-user-${Date.now()}`,
+      id: sub || `google-user-${Date.now()}`,
       email: email.trim().toLowerCase(),
       name: name || email.split('@')[0],
       avatar:
@@ -77,13 +143,14 @@ export const authService = {
         `https://ui-avatars.com/api/?name=${encodeURIComponent(name || email)}&background=0284c7&color=fff&bold=true`,
       role,
       domain,
-      token: token || `token_${Math.random().toString(36).substring(2)}`,
-      provider,
+      token: accessToken,
+      tokenExpiresAt,
+      provider: 'google-oauth',
       createdAt: now,
       lastLoginAt: now,
     };
 
-    // 3. Persist in database
+    // 3. Persist in database & storage
     await databaseService.saveUser(userProfile);
     await databaseService.setCurrentUser(userProfile);
 
@@ -105,63 +172,44 @@ export const authService = {
   },
 
   /**
-   * Fetches Google profile using OAuth access token
+   * Validates a stored session loaded from AsyncStorage on application startup.
+   * Ensures the session has a valid token, exact domain, and authentic provider.
    */
-  async fetchGoogleUserInfo(accessToken: string): Promise<any> {
-    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch Google profile: ${res.statusText}`);
+  async validateStoredSession(
+    user: UserProfile | null,
+    allowedDomain: string
+  ): Promise<UserProfile | null> {
+    if (!user) return null;
+
+    // Check provider: must be real google-oauth
+    if (user.provider !== 'google-oauth' && user.provider !== 'google') {
+      await databaseService.setCurrentUser(null);
+      return null;
     }
-    return await res.json();
-  },
 
-  /**
-   * OAuth login via Supabase (if configured)
-   */
-  async signInWithSupabaseGoogle(redirectTo?: string) {
-    if (!isSupabaseConfigured() || !supabase) {
-      throw new Error('Supabase is not configured.');
+    // Check token presence
+    if (!user.token || typeof user.token !== 'string' || user.token.length < 10) {
+      await databaseService.setCurrentUser(null);
+      return null;
     }
-    return await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    });
-  },
 
-  /**
-   * Realistic OAuth test authentication for testing domain restriction.
-   * Simulates full Google OAuth response to evaluate @hbplus.fit vs @gmail.com behavior.
-   */
-  async simulateGoogleSignIn(
-    email: string,
-    allowedDomain: string,
-    customName?: string
-  ): Promise<ProcessAuthResult> {
-    // Generate realistic Google user mock
-    const cleanEmail = email.trim();
-    const defaultName = customName || cleanEmail.split('@')[0].replace('.', ' ');
-    const formattedName = defaultName
-      .split(' ')
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
+    // Check token expiration if tracked
+    if (user.tokenExpiresAt && Date.now() > user.tokenExpiresAt) {
+      await databaseService.setCurrentUser(null);
+      return null;
+    }
 
-    const mockGooglePayload = {
-      id: `google_${Math.abs(cleanEmail.split('').reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0))}`,
-      email: cleanEmail,
-      name: formattedName,
-      picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=0284c7&color=fff&size=128`,
-      token: `mock_oauth_jwt_${Date.now()}`,
-    };
+    // Check domain whitelist
+    const validation = validateGoogleClaims(
+      { email: user.email, email_verified: true },
+      allowedDomain
+    );
+    if (!validation.isValid) {
+      await databaseService.setCurrentUser(null);
+      return null;
+    }
 
-    return await this.processGoogleUser(mockGooglePayload, allowedDomain, 'google-simulated');
+    return user;
   },
 
   /**

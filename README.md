@@ -1,24 +1,27 @@
 # HB Plus Security Gateway 🛡️
-### Cross-Platform React Native & React Native for Web Application with Google OAuth 2.0 and Strict Domain Restriction
+### Cross-Platform React Native & React Native for Web Application with Real Google OAuth 2.0 and Strict Domain Restriction
 
-A modern, secure, cross-platform enterprise gateway built with **React Native**, **React Native for Web**, and **Expo Router**. The application allows users to authenticate via **Google OAuth 2.0** and strictly restricts access exclusively to corporate email accounts ending in a whitelisted domain (e.g., `@hbplus.fit`).
+A secure, cross-platform corporate gateway built with **React Native**, **React Native for Web**, and **Expo Router**. The application enforces genuine **Google OAuth 2.0** authentication and strictly restricts access exclusively to corporate email accounts ending in the authorized domain (`@hbplus.fit`).
+
+All simulated/mock logins have been completely removed; every authenticated session requires a genuine Google OAuth token and a verified Google email claim.
 
 ---
 
 ## 📋 Table of Contents
 1. [Overview & Problem Statement](#overview--problem-statement)
-2. [Key Features](#key-features)
+2. [Key Security Principles](#key-security-principles)
 3. [Architecture & Folder Structure](#architecture--folder-structure)
 4. [Authentication Flow & Domain Restriction](#authentication-flow--domain-restriction)
 5. [Setup & Installation Instructions](#setup--installation-instructions)
-6. [Environment Variables](#environment-variables)
-7. [Running the Application (Web & Mobile)](#running-the-application-web--mobile)
-8. [Testing & Verification](#testing--verification)
-9. [Bonus Features](#bonus-features)
-   - [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
-   - [Database Persistence & Audit Logs](#database-persistence--audit-logs)
-   - [Route Protection & Navigation Guards](#route-protection--navigation-guards)
-10. [Security Best Practices](#security-best-practices)
+6. [Google Cloud Console Configuration](#google-cloud-console-configuration)
+7. [Environment Variables](#environment-variables)
+8. [Running the Application (Web & Mobile)](#running-the-application-web--mobile)
+9. [Automated Verification & Tests](#automated-verification--tests)
+10. [Bonus Features](#bonus-features)
+    - [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
+    - [Database Persistence & Audit Logs](#database-persistence--audit-logs)
+    - [Route Protection & Navigation Guards](#route-protection--navigation-guards)
+11. [Security Best Practices & Limitations](#security-best-practices--limitations)
 
 ---
 
@@ -31,22 +34,20 @@ Organizations require strict identity perimeter controls. This application imple
 
 ### Core Rule:
 - When a user signs in with Google:
-  - If `email = example@hbplus.fit` ➔ **Allow Login**, persist session, and route to **Dashboard**.
-  - If `email = example@gmail.com` (or any non-whitelisted domain) ➔ **Deny Access**, immediately revoke credentials, and display:
+  - If `email = example@hbplus.fit` and `email_verified === true` ➔ **Allow Login**, persist session, and route to **Dashboard**.
+  - If `email = example@gmail.com` (or any non-whitelisted / lookalike domain) ➔ **Deny Access**, immediately revoke credentials, and display:
     > **"Access restricted. Please login using your official domain email."**
 
 ---
 
-## ✨ Key Features
+## 🛡️ Key Security Principles
 
-- **Cross-Platform Parity**: 100% shared code for Web, Android, and iOS using Expo SDK 58 and React Native for Web.
-- **Google OAuth 2.0 Integration**: Compliant with OpenID Connect (`openid`, `profile`, `email` scopes).
-- **Domain Gatekeeper Logic**: Deterministic, case-insensitive RFC 5322 email parsing with zero-trust token handling.
-- **Route Guards**: Direct URL navigation (e.g. typing `/dashboard` or `/admin` in the browser) is intercepted and redirected to `/login` if unauthenticated.
-- **Role-Based Access Control (RBAC)**: Distinguishes between standard **Members** and **Administrators**. Admins have access to the **Admin Console**.
-- **Security Audit Logging**: Every authentication event (allowed or blocked) is logged with timestamp, user email, domain, platform (`Web`, `iOS`, `Android`), and outcome reason.
-- **Persistent Database**: Integrated with Supabase + `@react-native-async-storage/async-storage` for reliable session and audit trail retention.
-- **Reviewer Test Suite**: Interactive 1-click test triggers on the login screen for testing allowed (`alex@hbplus.fit`), admin (`admin@hbplus.fit`), and blocked (`example@gmail.com`) domains instantly.
+1. **No Simulated Fallbacks**: No mock users, test accounts, or bypass switches exist in the authentication path.
+2. **Missing Credentials Safeguard**: If Google OAuth client IDs are unconfigured, the app alerts the user and keeps them strictly logged out.
+3. **Google Verified Email Claim**: Checks `email_verified === true` on the Google OpenID payload before evaluating domain policy.
+4. **Exact Domain Equality**: Prevents domain lookalike attacks (such as `user@hbplus.fit.attacker.com`, `user@not-hbplus.fit`, and `user@hbplus.fitness`).
+5. **Session Integrity**: Stored sessions require a valid Google bearer token and authentic provider tag (`google-oauth`). Manually forged or expired entries are purged immediately on app startup.
+6. **No Client Secrets**: Client Secrets are NEVER bundled or exposed in frontend code or `EXPO_PUBLIC_` variables.
 
 ---
 
@@ -58,7 +59,7 @@ hb/
 │   ├── app/                      # Expo Router File-Based Routing (Screens)
 │   │   ├── _layout.tsx           # Root layout, AuthProvider, Route Guards
 │   │   ├── index.tsx             # Entry redirect / splash
-│   │   ├── login.tsx             # Login Screen (Google Sign-In, Domain Gatekeeper)
+│   │   ├── login.tsx             # Login Screen (Real Google Sign-In & Gatekeeper)
 │   │   ├── dashboard.tsx         # Protected User Dashboard
 │   │   └── admin.tsx             # Protected Admin Console (RBAC)
 │   ├── components/               # Cross-Platform UI Components
@@ -67,15 +68,16 @@ hb/
 │   │   ├── Banner.tsx            # Error & warning notification banner
 │   │   ├── Card.tsx              # Elevated container card
 │   │   ├── GoogleButton.tsx      # Branded Google Sign-In button with loading spinner
+│   │   ├── GoogleIcon.tsx        # Official 4-color Google G icon
 │   │   └── Navbar.tsx            # Responsive navigation header
 │   ├── config/
 │   │   └── env.ts                # App configuration & environment constants
 │   ├── context/
-│   │   └── AuthContext.tsx       # Auth state, login/logout, domain management
+│   │   └── AuthContext.tsx       # Auth state, real Google OAuth, domain management
 │   ├── services/
-│   │   ├── authService.ts        # Google OAuth flow & credential validation
+│   │   ├── authService.ts        # Real Google OAuth processing & token validation
 │   │   ├── databaseService.ts    # Persistent storage (AsyncStorage + Supabase)
-│   │   ├── domainValidator.ts    # Domain validation logic & role resolver
+│   │   ├── domainValidator.ts    # Domain validation logic & claim verification
 │   │   └── supabaseClient.ts     # Supabase client setup
 │   ├── types/
 │   │   └── auth.ts               # TypeScript interfaces (User, AuditLog, Role)
@@ -94,31 +96,38 @@ hb/
 
 ## 🔒 Authentication Flow & Domain Restriction
 
-### 1. Step-by-Step Flowchart
+### 1. Step-by-Step Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as Employee / User
     participant UI as Login Screen
-    participant Google as Google OAuth 2.0
+    participant Google as Google OAuth 2.0 (OpenID)
     participant Guard as Domain Gatekeeper
     participant DB as Persistent Database
     participant Dash as Protected Dashboard
 
-    User->>UI: Clicks "Sign in with Google"
-    UI->>Google: Launch OAuth Consent Prompt
-    Google-->>UI: Returns Access Token & User Profile
-    UI->>Guard: validateDomain(email, allowedDomain)
-    
-    alt Email ends with @hbplus.fit
-        Guard->>DB: Save User & Record ALLOWED Audit Log
-        Guard-->>UI: Access Granted
-        UI->>Dash: Route Guard redirects to /dashboard
-    else Email does NOT match @hbplus.fit (e.g. example@gmail.com)
-        Guard->>DB: Record RESTRICTED Audit Log
-        Guard->>UI: Revoke Token & Wipe Session
-        UI-->>User: Display Error: "Access restricted. Please login using your official domain email."
+    User->>UI: Clicks "Continue with Google"
+    UI->>Google: Launch OAuth Consent Prompt (expo-auth-session)
+    alt User Cancels Prompt
+        Google-->>UI: Returns cancel / dismiss
+        UI-->>User: Keeps user logged out (no session created)
+    else User Authorizes
+        Google-->>UI: Returns OAuth Access Token
+        UI->>Google: Fetch UserInfo (https://www.googleapis.com/oauth2/v3/userinfo)
+        Google-->>UI: Returns claims (email, email_verified, name, sub)
+        UI->>Guard: validateGoogleClaims(claims, allowedDomain)
+        
+        alt Email Verified AND domain === 'hbplus.fit'
+            Guard->>DB: Save User Profile & Record ALLOWED Audit Log
+            Guard-->>UI: Access Granted
+            UI->>Dash: Route Guard redirects to /dashboard
+        else Domain mismatch OR lookalike OR unverified
+            Guard->>DB: Record RESTRICTED Audit Log
+            Guard->>UI: Purge session state & revoke credentials
+            UI-->>User: Display Error: "Access restricted. Please login using your official domain email."
+        end
     end
 ```
 
@@ -130,14 +139,16 @@ The validation logic lives in `src/services/domainValidator.ts`:
    ```ts
    const normalizedEmail = (email || '').trim().toLowerCase();
    ```
-2. **RFC 5322 Format Check**: Verifies that the input matches a valid standard email syntax (`^[^\s@]+@[^\s@]+\.[^\s@]+$`).
-3. **Domain Extraction**: Extracts the portion following the `@` delimiter:
+2. **RFC 5322 Format Check**: Verifies standard email syntax:
    ```ts
-   const domain = email.split('@')[1];
+   const parts = normalizedEmail.split('@');
+   if (parts.length !== 2) return false;
    ```
-4. **Target Whitelist Matching**:
+3. **Exact Domain Equality**:
    ```ts
-   if (domain !== allowedDomain.toLowerCase()) {
+   const domain = parts[1];
+   const targetDomain = allowedDomain.trim().toLowerCase().replace(/^@/, '');
+   if (domain !== targetDomain) {
      return {
        isValid: false,
        domain,
@@ -145,120 +156,126 @@ The validation logic lives in `src/services/domainValidator.ts`:
      };
    }
    ```
-5. **Immediate Token Revocation**: If `isValid === false`, the access token is never persisted in storage. Any pending session state is wiped (`setCurrentUser(null)`), an audit log entry is recorded with status `RESTRICTED`, and the user remains locked on the login screen with the prominent error banner.
+4. **Verified Claim Requirement**:
+   ```ts
+   if (claims.email_verified !== true && claims.email_verified !== 'true') {
+     return {
+       isValid: false,
+       errorMessage: 'Access restricted. Please login using your official domain email.'
+     };
+   }
+   ```
+5. **No Session on Failure**: If `isValid === false`, the access token is purged, `databaseService.setCurrentUser(null)` is called, and the user remains locked on the login screen.
 
 ---
 
-## 🚀 Setup & Installation Instructions
+## ⚙️ Google Cloud Console Configuration
 
-### Prerequisites
-- **Node.js**: v18+ (tested on Node v22)
-- **npm** or **bun**
+To enable real Google authentication for your domain:
 
-### 1. Clone & Install Dependencies
+1. Open the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. Create or select your Google Cloud project.
+3. Configure the **OAuth Consent Screen**:
+   - User Type: **Internal** (if restricted to your Google Workspace domain) or **External** (in Testing mode with test users).
+   - Scopes: `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`.
+4. Create **OAuth Client IDs**:
+   - **For Web**:
+     - Application type: **Web application**
+     - Authorized JavaScript origins: `http://localhost:8081`
+     - Authorized redirect URIs: `http://localhost:8081` and `https://auth.expo.io/@your-expo-username/hb`
+   - **For Android** (optional for native emulator):
+     - Application type: **Android**
+     - Package name: from `app.json` (e.g., `com.anonymous.hb`)
+   - **For iOS** (optional for native simulator):
+     - Application type: **iOS**
+     - Bundle ID: from `app.json` (e.g., `com.anonymous.hb`)
+5. Copy the Client ID strings into your `.env` file.
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/hbplus-gateway.git
-cd hbplus-gateway
+---
 
-# Install dependencies (SDK-compatible versions)
-npm install
-```
+## 🔑 Environment Variables
 
-### 2. Configure Environment Variables
+Create `.env` based on `.env.example`:
 
-Copy `.env.example` to `.env`:
-
-```bash
-cp .env.example .env
-```
-
-The default `.env` is pre-configured with:
 ```env
+# Primary allowed corporate domain
 EXPO_PUBLIC_ALLOWED_DOMAIN=hbplus.fit
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
+
+# Google OAuth 2.0 Client IDs (from Google Cloud Console)
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-client-id.apps.googleusercontent.com
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=
+
+# Optional Supabase Database Persistence
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
-> **Note**: The application includes a built-in interactive simulator and evaluator suite on the login screen. You can test and grade the app immediately out of the box even without creating Google Cloud Console credentials!
-
 ---
 
-## 💻 Running the Application (Web & Mobile)
+## 🚀 Running the Application (Web & Mobile)
 
-### Run on Web (Browser)
 ```bash
+# Start Web Dev Server
 npm run web
-```
-Opens the application at `http://localhost:8081` in your default browser.
 
-### Run on Android
-```bash
+# Start Android
 npm run android
-```
-Launches the Android emulator or connects to a USB-connected device.
 
-### Run on iOS (macOS required)
-```bash
+# Start iOS (macOS required)
 npm run ios
-```
-Launches the iOS Simulator.
 
-### Bundle for Production Web
-```bash
+# Production Web Export
 npx expo export --platform web
 ```
-Generates production-optimized static assets in the `dist/` directory.
 
 ---
 
-## 🧪 Testing & Verification
+## 🧪 Automated Verification & Tests
 
-### 1. Automated Domain Restriction Unit Tests
-Run the automated test suite covering 10 distinct verification scenarios:
+Run the domain validation test suite (14/14 automated tests covering standard domains, lookalikes, unverified claims, and RBAC):
+
 ```bash
 npm run test
 ```
 
-Expected output:
+Sample output:
 ```
 ======================================================
-HB PLUS GATEWAY: DOMAIN RESTRICTION VERIFICATION SUITE
+HB PLUS GATEWAY: DOMAIN RESTRICTION & CLAIMS VERIFICATION
 ======================================================
 
 ✅ PASSED: Allow example@hbplus.fit access
 ✅ PASSED: Domain extracted as hbplus.fit
 ✅ PASSED: Block example@gmail.com access
 ✅ PASSED: Verify exact error message: "Access restricted. Please login using your official domain email."
-✅ PASSED: Block someone@yahoo.com
-✅ PASSED: Block employee@outlook.com
+✅ PASSED: Block lookalike: user@hbplus.fit.attacker.com
+✅ PASSED: Lookalike 1 returns exact restriction error
+✅ PASSED: Block lookalike: user@not-hbplus.fit
+✅ PASSED: Lookalike 2 returns exact restriction error
+✅ PASSED: Block lookalike: user@hbplus.fitness
+✅ PASSED: Allow verified Google account sarah@hbplus.fit
+✅ PASSED: Reject unverified Google claim (email_verified: false)
+✅ PASSED: Unverified claim returns restriction error
 ✅ PASSED: Allow uppercase with whitespace "  USER@HBPLUS.FIT  "
 ✅ PASSED: Reject empty string
 ✅ PASSED: Reject malformed email
+✅ PASSED: Reject double-@ malformed email
 ✅ PASSED: Reject missing username
 ✅ PASSED: Assign admin role to admin@hbplus.fit
 ✅ PASSED: Assign admin role to superadmin@hbplus.fit
 ✅ PASSED: Assign user role to alex@hbplus.fit
 
 ------------------------------------------------------
-ALL DOMAIN RESTRICTION CHECKS PASSED SUCCESSFULLY (10/10)
+ALL VERIFICATION CHECKS PASSED (14/14 checks)
 ------------------------------------------------------
 ```
 
-### 2. Code Quality & Linter
+### Code Quality Verification
 ```bash
-# ESLint check
-npm run lint
-
-# TypeScript strict type check
-npm run typecheck
-
-# Expo Doctor configuration audit (20/20 checks passed)
-npx expo-doctor
+npm run lint       # ESLint check (0 errors, 0 warnings)
+npm run typecheck  # TypeScript strict type check (0 errors)
+npx expo-doctor    # Expo SDK 58 doctor (20/20 checks passed)
 ```
 
 ---
@@ -266,19 +283,18 @@ npx expo-doctor
 ## 🎁 Bonus Features
 
 ### 1. Role-Based Access Control (RBAC)
-- **Member Role (`user`)**: Granted to standard `@hbplus.fit` accounts (e.g. `alex@hbplus.fit`). Has access to the **Personal Dashboard**, compliance metrics, and sign-in history.
-- **Administrator Role (`admin`)**: Granted to admin accounts (e.g. `admin@hbplus.fit`). Unlocks the **Security Administration Console** (`/admin`).
+- **Standard Member (`user`)**: Granted access to the **Personal Workspace Dashboard**.
+- **Administrator (`admin`)**: Accounts in `ADMIN_EMAILS` (e.g. `admin@hbplus.fit`) unlock the **Security Administration Console** (`/admin`).
 - Non-admin users attempting to open `/admin` are intercepted by the route guard and redirected back to `/dashboard`.
 
 ### 2. Database Persistence & Audit Logs
-- **Persistent Storage**: Uses `@react-native-async-storage/async-storage` for local persistence and optional **Supabase** cloud database sync.
-- **Audit Table**: Records every authentication attempt with:
+- Synchronizes with `@react-native-async-storage/async-storage` and **Supabase** (`supabase/schema.sql`).
+- Cryptographic audit trail records every authentication event with:
   - Timestamp
-  - Email & Domain
+  - User Email & Domain
   - Outcome Status (`ALLOWED` or `RESTRICTED`)
-  - Target Platform (`Web`, `iOS`, `Android`)
-  - Policy Reason / Note
-- **Admin Whitelist Manager**: Admins can change the whitelisted domain dynamically in the Admin Console.
+  - Client Platform (`Web`, `iOS`, `Android`)
+  - Policy reason
 
 ### 3. Route Protection & Navigation Guards
 Implemented via `src/app/_layout.tsx` using Expo Router's segment monitor:
@@ -288,14 +304,12 @@ Implemented via `src/app/_layout.tsx` using Expo Router's segment monitor:
 
 ---
 
-## 🛡️ Security Best Practices
+## 🛡️ Security Best Practices & Limitations
 
-1. **Token Isolation**: OAuth access tokens are stored securely and never written to logs or error outputs.
+### Best Practices Enforced
+1. **Zero Frontend Secrets**: Only public Client IDs are stored in the client. No Client Secret is present.
 2. **Immediate Revocation on Domain Failure**: If an account does not belong to `@hbplus.fit`, token parsing terminates immediately and the session is purged.
-3. **Cryptographic Audit Trail**: All authentication events are recorded with monotonic timestamps and device platforms.
-4. **Clean UI State**: When access is restricted, sensitive user details are cleared from application memory.
+3. **Session Verification on Startup**: Stored credentials are check-validated on application load.
 
----
-
-## 📄 License
-MIT License.
+### Remaining Limitations
+- **Client-Side OAuth Flow**: In a frontend-only single-page application / native app without a dedicated backend server, token verification relies on Google's UserInfo API (`https://www.googleapis.com/oauth2/v3/userinfo`). For ultimate enterprise defense-in-depth, pair this with a backend endpoint that verifies the Google `id_token` using Google's public keys before issuing an HTTP-only JWT cookie.

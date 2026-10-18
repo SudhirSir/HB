@@ -7,8 +7,9 @@ export interface UserProfile {
   avatar?: string;
   role: UserRole;
   domain: string;
-  token?: string;
-  provider: 'google' | 'google-oauth' | 'google-simulated';
+  token: string;
+  tokenExpiresAt?: number;
+  provider: 'google-oauth' | 'google';
   createdAt: string;
   lastLoginAt: string;
 }
