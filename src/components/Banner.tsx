@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
 interface BannerProps {
   type?: 'error' | 'warning' | 'info' | 'success';
@@ -14,64 +14,68 @@ export const Banner: React.FC<BannerProps> = ({
   message,
   onDismiss,
 }) => {
-  const getColors = () => {
+  const getTheme = () => {
     switch (type) {
       case 'error':
         return {
-          bg: '#fef2f2',
-          border: '#f87171',
-          text: '#991b1b',
-          title: '#7f1d1d',
-          icon: '⚠️',
+          bg: '#FEF2F2',
+          border: '#FCA5A5',
+          title: '#991B1B',
+          text: '#7F1D1D',
+          badge: '#DC2626',
         };
       case 'warning':
         return {
-          bg: '#fffbeb',
-          border: '#fcd34d',
-          text: '#92400e',
-          title: '#78350f',
-          icon: '⚡',
+          bg: '#FFFBEB',
+          border: '#FCD34D',
+          title: '#92400E',
+          text: '#78350F',
+          badge: '#D97706',
         };
       case 'success':
         return {
-          bg: '#f0fdf4',
-          border: '#86efac',
-          text: '#166534',
-          title: '#14532d',
-          icon: '✅',
+          bg: '#ECFDF5',
+          border: '#A7F3D0',
+          title: '#065F46',
+          text: '#047857',
+          badge: '#059669',
         };
       case 'info':
       default:
         return {
-          bg: '#f0f9ff',
-          border: '#7dd3fc',
-          text: '#075985',
-          title: '#0c4a6e',
-          icon: 'ℹ️',
+          bg: '#F0F9FF',
+          border: '#BAE6FD',
+          title: '#0369A1',
+          text: '#0C4A6E',
+          badge: '#0284C7',
         };
     }
   };
 
-  const colors = getColors();
+  const theme = getTheme();
 
   return (
     <View
       style={[
-        styles.container,
-        { backgroundColor: colors.bg, borderColor: colors.border },
+        styles.banner,
+        { backgroundColor: theme.bg, borderColor: theme.border },
       ]}
     >
-      <View style={styles.contentRow}>
-        <Text style={styles.icon}>{colors.icon}</Text>
+      <View style={styles.contentWrap}>
+        <View style={[styles.indicatorBar, { backgroundColor: theme.badge }]} />
         <View style={styles.textContainer}>
           {title ? (
-            <Text style={[styles.title, { color: colors.title }]}>{title}</Text>
+            <Text style={[styles.title, { color: theme.title }]}>{title}</Text>
           ) : null}
-          <Text style={[styles.message, { color: colors.text }]}>{message}</Text>
+          <Text style={[styles.message, { color: theme.text }]}>{message}</Text>
         </View>
         {onDismiss && (
-          <TouchableOpacity onPress={onDismiss} style={styles.dismissButton}>
-            <Text style={styles.dismissText}>✕</Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onDismiss}
+            style={styles.closeButton}
+          >
+            <Text style={styles.closeIcon}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -80,40 +84,55 @@ export const Banner: React.FC<BannerProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    borderRadius: 12,
-    borderWidth: 1.5,
-    padding: 14,
-    marginVertical: 10,
+  banner: {
+    borderRadius: 8,
+    borderWidth: 1,
+    marginVertical: 12,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+      },
+      default: {
+        elevation: 1,
+      },
+    }),
   },
-  contentRow: {
+  contentWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 12,
   },
-  icon: {
-    fontSize: 20,
+  indicatorBar: {
+    width: 3,
+    height: '100%',
+    minHeight: 28,
+    borderRadius: 2,
     marginRight: 12,
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     marginBottom: 2,
+    letterSpacing: -0.1,
   },
   message: {
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,
+    letterSpacing: -0.1,
   },
-  dismissButton: {
+  closeButton: {
     padding: 6,
     marginLeft: 8,
+    borderRadius: 4,
   },
-  dismissText: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '700',
+  closeIcon: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
 });

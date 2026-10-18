@@ -19,7 +19,6 @@ import { getPlatformDisplayName } from '@/utils/platform';
 export default function DashboardScreen() {
   const { user, logout, allowedDomain, auditLogs } = useAuth();
 
-  // RouteGuard handles non-logged in users, but we provide safe fallback
   if (!user) {
     return null;
   }
@@ -38,87 +37,100 @@ export default function DashboardScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.container}>
-          {/* Welcome & Status Banner */}
-          <View style={styles.welcomeBanner}>
+          {/* Page Header */}
+          <View style={styles.header}>
             <View>
-              <Text style={styles.greetingText}>Welcome back,</Text>
-              <Text style={styles.userNameText}>{user.name}</Text>
+              <Text style={styles.pageTitle}>Personal Workspace</Text>
+              <Text style={styles.pageSubtitle}>
+                Verified corporate session for @{user.domain}
+              </Text>
             </View>
-            <View style={styles.bannerBadges}>
-              <Badge label={`Domain: @${user.domain}`} variant="success" />
+            <View style={styles.headerActions}>
               <Badge
-                label={`Role: ${user.role.toUpperCase()}`}
-                variant={isAdmin ? 'primary' : 'info'}
+                label={`Domain: @${user.domain}`}
+                variant="success"
+                showDot
+              />
+              <Badge
+                label={isAdmin ? 'Administrator' : 'Standard Member'}
+                variant={isAdmin ? 'primary' : 'neutral'}
+                showDot
               />
             </View>
           </View>
 
-          {/* Admin Prompt Banner (if user is admin) */}
+          {/* Admin Banner (Shown if user has Admin role) */}
           {isAdmin && (
             <TouchableOpacity
-              activeOpacity={0.85}
+              activeOpacity={0.88}
               onPress={() => router.push('/admin')}
               style={styles.adminBanner}
             >
               <View style={styles.adminBannerLeft}>
-                <Text style={styles.adminBannerIcon}>🛡️</Text>
+                <View style={styles.adminIconWrap}>
+                  <Text style={styles.adminIconText}>A</Text>
+                </View>
                 <View>
-                  <Text style={styles.adminBannerTitle}>
-                    Administrator Privileges Active
-                  </Text>
+                  <Text style={styles.adminBannerTitle}>Admin Console Access Available</Text>
                   <Text style={styles.adminBannerSubtitle}>
-                    You have full access to the Audit Log, Whitelist Settings, and User Management.
+                    Manage domain whitelists, review global authentication audit trails, and inspect user directories.
                   </Text>
                 </View>
               </View>
-              <View style={styles.adminBannerButton}>
-                <Text style={styles.adminBannerButtonText}>Open Console →</Text>
+              <View style={styles.adminBannerAction}>
+                <Text style={styles.adminBannerActionText}>Open Console →</Text>
               </View>
             </TouchableOpacity>
           )}
 
-          {/* Top Grid: Profile Card & Security Overview Card */}
-          <View style={styles.gridRow}>
-            {/* User Profile Card */}
-            <Card style={styles.profileCard}>
-              <View style={styles.profileHeader}>
+          {/* Top Two Column Grid: Identity Card & Security Clearance Card */}
+          <View style={styles.twoColGrid}>
+            {/* Identity Card */}
+            <Card style={styles.gridCard}>
+              <Text style={styles.cardSectionLabel}>Identity & Authorization</Text>
+
+              <View style={styles.profileRow}>
                 {user.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.profileImage} />
+                  <Image source={{ uri: user.avatar }} style={styles.avatar} />
                 ) : (
-                  <View style={[styles.profileImage, styles.profileImageFallback]}>
-                    <Text style={styles.profileImageFallbackText}>
+                  <View style={[styles.avatar, styles.avatarFallback]}>
+                    <Text style={styles.avatarFallbackText}>
                       {user.name.charAt(0).toUpperCase()}
                     </Text>
                   </View>
                 )}
 
-                <View style={styles.profileDetails}>
+                <View style={styles.profileMeta}>
                   <Text style={styles.profileName}>{user.name}</Text>
                   <Text style={styles.profileEmail}>{user.email}</Text>
-                  <View style={styles.profileBadges}>
-                    <Badge label={user.role} variant={isAdmin ? 'primary' : 'info'} />
-                    <Badge label="Google Verified" variant="neutral" />
+                  <View style={styles.badgeRow}>
+                    <Badge
+                      label={user.role === 'admin' ? 'Super Admin' : 'Active Member'}
+                      variant={user.role === 'admin' ? 'primary' : 'neutral'}
+                      showDot
+                    />
+                    <Badge label="Google SSO" variant="neutral" />
                   </View>
                 </View>
               </View>
 
-              <View style={styles.detailsDivider} />
+              <View style={styles.divider} />
 
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Domain Authority</Text>
-                <Text style={styles.metaValue}>@{user.domain}</Text>
+              <View style={styles.specRow}>
+                <Text style={styles.specLabel}>Corporate Domain</Text>
+                <Text style={styles.specValue}>@{user.domain}</Text>
               </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Auth Provider</Text>
-                <Text style={styles.metaValue}>Google OAuth 2.0</Text>
+              <View style={styles.specRow}>
+                <Text style={styles.specLabel}>SSO Provider</Text>
+                <Text style={styles.specValue}>Google OAuth 2.0</Text>
               </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Active Client</Text>
-                <Text style={styles.metaValue}>{getPlatformDisplayName()}</Text>
+              <View style={styles.specRow}>
+                <Text style={styles.specLabel}>Client Device</Text>
+                <Text style={styles.specValue}>{getPlatformDisplayName()}</Text>
               </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Last Authenticated</Text>
-                <Text style={styles.metaValue}>
+              <View style={styles.specRow}>
+                <Text style={styles.specLabel}>Session Authenticated</Text>
+                <Text style={styles.specValue}>
                   {new Date(user.lastLoginAt).toLocaleTimeString([], {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -128,105 +140,80 @@ export default function DashboardScreen() {
             </Card>
 
             {/* Security Clearance Card */}
-            <Card style={styles.securityCard}>
-              <Text style={styles.sectionHeader}>Security Compliance State</Text>
+            <Card style={styles.gridCard}>
+              <Text style={styles.cardSectionLabel}>Security & Perimeter Status</Text>
 
-              <View style={styles.complianceItem}>
-                <View style={styles.checkCircle}>
-                  <Text style={styles.checkText}>✓</Text>
+              <View style={styles.statusList}>
+                <View style={styles.statusItem}>
+                  <View style={styles.statusBullet} />
+                  <View style={styles.statusTextWrap}>
+                    <Text style={styles.statusTitle}>Domain Whitelist Verification</Text>
+                    <Text style={styles.statusDesc}>
+                      Matched corporate whitelist (@{allowedDomain}).
+                    </Text>
+                  </View>
+                  <Badge label="Passed" variant="success" showDot />
                 </View>
-                <View style={styles.complianceTextWrap}>
-                  <Text style={styles.complianceTitle}>Domain Whitelist Check Passed</Text>
-                  <Text style={styles.complianceDesc}>
-                    Email matched authorized company domain (@{allowedDomain}).
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.complianceItem}>
-                <View style={styles.checkCircle}>
-                  <Text style={styles.checkText}>✓</Text>
+                <View style={styles.statusItem}>
+                  <View style={styles.statusBullet} />
+                  <View style={styles.statusTextWrap}>
+                    <Text style={styles.statusTitle}>OAuth Bearer Token Validation</Text>
+                    <Text style={styles.statusDesc}>
+                      Token parsed and verified via OpenID Connect.
+                    </Text>
+                  </View>
+                  <Badge label="Verified" variant="success" showDot />
                 </View>
-                <View style={styles.complianceTextWrap}>
-                  <Text style={styles.complianceTitle}>OAuth 2.0 Bearer Token Verified</Text>
-                  <Text style={styles.complianceDesc}>
-                    Google identity token validated and session secured.
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.complianceItem}>
-                <View style={styles.checkCircle}>
-                  <Text style={styles.checkText}>✓</Text>
+                <View style={styles.statusItem}>
+                  <View style={styles.statusBullet} />
+                  <View style={styles.statusTextWrap}>
+                    <Text style={styles.statusTitle}>Navigation Guards</Text>
+                    <Text style={styles.statusDesc}>
+                      Protected workspace routes unlocked.
+                    </Text>
+                  </View>
+                  <Badge label="Active" variant="success" showDot />
                 </View>
-                <View style={styles.complianceTextWrap}>
-                  <Text style={styles.complianceTitle}>Protected Route Access Granted</Text>
-                  <Text style={styles.complianceDesc}>
-                    Navigation guards unlocked for dashboard resources.
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.complianceItem}>
-                <View style={styles.checkCircle}>
-                  <Text style={styles.checkText}>✓</Text>
-                </View>
-                <View style={styles.complianceTextWrap}>
-                  <Text style={styles.complianceTitle}>Encrypted Persistent Storage</Text>
-                  <Text style={styles.complianceDesc}>
-                    Session saved in secure client database with token isolation.
-                  </Text>
+                <View style={styles.statusItem}>
+                  <View style={styles.statusBullet} />
+                  <View style={styles.statusTextWrap}>
+                    <Text style={styles.statusTitle}>Encrypted Session Storage</Text>
+                    <Text style={styles.statusDesc}>
+                      Isolated local credentials cache.
+                    </Text>
+                  </View>
+                  <Badge label="Isolated" variant="success" showDot />
                 </View>
               </View>
             </Card>
           </View>
 
-          {/* Quick Metrics Row */}
-          <View style={styles.metricsRow}>
-            <Card style={styles.metricCard}>
-              <Text style={styles.metricNumber}>100%</Text>
-              <Text style={styles.metricLabel}>Domain Isolation</Text>
-              <Text style={styles.metricSub}>All non-@{allowedDomain} rejected</Text>
-            </Card>
-
-            <Card style={styles.metricCard}>
-              <Text style={styles.metricNumber}>OAuth 2.0</Text>
-              <Text style={styles.metricLabel}>Protocol</Text>
-              <Text style={styles.metricSub}>Google OpenID Connect</Text>
-            </Card>
-
-            <Card style={styles.metricCard}>
-              <Text style={styles.metricNumber}>{isAdmin ? 'Admin' : 'Member'}</Text>
-              <Text style={styles.metricLabel}>Access Level</Text>
-              <Text style={styles.metricSub}>
-                {isAdmin ? 'Full System Privileges' : 'Standard User Access'}
-              </Text>
-            </Card>
-          </View>
-
-          {/* User Sign-In History / Audit Log */}
-          <Card style={styles.auditCard}>
-            <View style={styles.auditCardHeader}>
+          {/* Activity & Authentication Logs Card */}
+          <Card style={styles.tableCard}>
+            <View style={styles.tableHeader}>
               <View>
-                <Text style={styles.sectionHeader}>Your Recent Sign-In Events</Text>
-                <Text style={styles.sectionSub}>
-                  Chronological authentication attempts and gatekeeper validation logs
+                <Text style={styles.tableTitle}>Recent Authentication Events</Text>
+                <Text style={styles.tableSubtitle}>
+                  Monitored access activity recorded by the domain gatekeeper
                 </Text>
               </View>
-              <Badge label="Real-time Audit" variant="info" />
+              <Badge label="Live Audit" variant="neutral" showDot />
             </View>
 
             <AuditTable logs={userLogs.length > 0 ? userLogs : auditLogs.slice(0, 5)} maxEntries={5} />
           </Card>
 
-          {/* Bottom Logout Action */}
-          <View style={styles.bottomActionRow}>
+          {/* Bottom Sign-out Action */}
+          <View style={styles.footerRow}>
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleLogout}
-              style={styles.bottomLogoutButton}
+              style={styles.footerLogoutButton}
             >
-              <Text style={styles.bottomLogoutText}>Sign Out from {user.email}</Text>
+              <Text style={styles.footerLogoutText}>Sign out of this session</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -238,18 +225,18 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAFAFA',
   },
   scrollContent: {
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
   container: {
     width: '100%',
     maxWidth: 1100,
   },
-  welcomeBanner: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -257,19 +244,18 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
   },
-  greetingText: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
-  userNameText: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0f172a',
+  pageSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
   },
-  bannerBadges: {
+  headerActions: {
     flexDirection: 'row',
     gap: 8,
   },
@@ -277,14 +263,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#ede9fe',
-    borderWidth: 1.5,
-    borderColor: '#c4b5fd',
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 20,
     flexWrap: 'wrap',
     gap: 12,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as any,
+      },
+    }),
   },
   adminBannerLeft: {
     flexDirection: 'row',
@@ -292,182 +283,154 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 260,
   },
-  adminBannerIcon: {
-    fontSize: 28,
-    marginRight: 14,
+  adminIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#6D28D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  adminIconText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
   },
   adminBannerTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#5b21b6',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4C1D95',
   },
   adminBannerSubtitle: {
     fontSize: 12,
-    color: '#6d28d9',
+    color: '#6D28D9',
     marginTop: 2,
-    lineHeight: 16,
   },
-  adminBannerButton: {
-    backgroundColor: '#7c3aed',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+  adminBannerAction: {
+    backgroundColor: '#6D28D9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  adminBannerButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
+  adminBannerActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  gridRow: {
+  twoColGrid: {
     flexDirection: Platform.select({ web: 'row', default: 'column' }),
     gap: 16,
     marginBottom: 16,
   },
-  profileCard: {
+  gridCard: {
     flex: 1,
+    padding: 20,
   },
-  profileHeader: {
+  cardSectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 16,
+  },
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
-  profileImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: 16,
-    borderWidth: 2,
-    borderColor: '#0284c7',
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  profileImageFallback: {
-    backgroundColor: '#0284c7',
+  avatarFallback: {
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileImageFallbackText: {
-    color: '#ffffff',
-    fontSize: 26,
-    fontWeight: '800',
+  avatarFallbackText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
   },
-  profileDetails: {
+  profileMeta: {
     flex: 1,
   },
   profileName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
     marginBottom: 2,
+    letterSpacing: -0.2,
   },
   profileEmail: {
-    fontSize: 13,
-    color: '#64748b',
+    fontSize: 12,
+    color: '#64748B',
     marginBottom: 6,
-    fontFamily: Platform.select({ ios: 'Courier', android: 'monospace', default: 'monospace' }),
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
-  profileBadges: {
+  badgeRow: {
     flexDirection: 'row',
     gap: 6,
   },
-  detailsDivider: {
+  divider: {
     height: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F1F5F9',
     marginVertical: 12,
   },
-  metaRow: {
+  specRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 6,
   },
-  metaLabel: {
+  specLabel: {
     fontSize: 13,
-    color: '#64748b',
-    fontWeight: '500',
+    color: '#64748B',
   },
-  metaValue: {
+  specValue: {
     fontSize: 13,
-    color: '#0f172a',
-    fontWeight: '700',
+    color: '#0F172A',
+    fontWeight: '600',
   },
-  securityCard: {
-    flex: 1.2,
+  statusList: {
+    gap: 12,
   },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 14,
-  },
-  sectionSub: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  complianceItem: {
+  statusItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 14,
-  },
-  checkCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#dcfce7',
-    borderWidth: 1,
-    borderColor: '#86efac',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  statusBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
     marginRight: 12,
-    marginTop: 1,
   },
-  checkText: {
-    color: '#15803d',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  complianceTextWrap: {
+  statusTextWrap: {
     flex: 1,
+    marginRight: 8,
   },
-  complianceTitle: {
+  statusTitle: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontWeight: '600',
+    color: '#0F172A',
   },
-  complianceDesc: {
-    fontSize: 12,
-    color: '#64748b',
-    lineHeight: 16,
-    marginTop: 1,
-  },
-  metricsRow: {
-    flexDirection: Platform.select({ web: 'row', default: 'column' }),
-    gap: 16,
-    marginBottom: 16,
-  },
-  metricCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 18,
-  },
-  metricNumber: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0284c7',
-    marginBottom: 4,
-  },
-  metricLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 2,
-  },
-  metricSub: {
+  statusDesc: {
     fontSize: 11,
-    color: '#64748b',
+    color: '#64748B',
+    marginTop: 1,
   },
-  auditCard: {
+  tableCard: {
+    padding: 20,
     marginBottom: 20,
   },
-  auditCardHeader: {
+  tableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -475,21 +438,37 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  bottomActionRow: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  bottomLogoutButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#fca5a5',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  bottomLogoutText: {
-    color: '#dc2626',
-    fontWeight: '700',
+  tableTitle: {
     fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  tableSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  footerRow: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  footerLogoutButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as any,
+      },
+    }),
+  },
+  footerLogoutText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
   },
 });

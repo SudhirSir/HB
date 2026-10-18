@@ -14,8 +14,11 @@ export const AuditTable: React.FC<AuditTableProps> = ({ logs, maxEntries = 10 })
   const formatTime = (isoString: string) => {
     try {
       const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
-        ' (' + date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ')';
+      return (
+        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+        ', ' +
+        date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+      );
     } catch {
       return isoString;
     }
@@ -24,7 +27,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ logs, maxEntries = 10 })
   if (!logs || logs.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No authentication audit records yet.</Text>
+        <Text style={styles.emptyText}>No authentication records recorded yet.</Text>
       </View>
     );
   }
@@ -34,51 +37,57 @@ export const AuditTable: React.FC<AuditTableProps> = ({ logs, maxEntries = 10 })
       <View style={styles.table}>
         {/* Table Header */}
         <View style={[styles.row, styles.headerRow]}>
-          <Text style={[styles.cell, styles.headerCell, { width: 110 }]}>Status</Text>
-          <Text style={[styles.cell, styles.headerCell, { width: 230 }]}>Account Email</Text>
-          <Text style={[styles.cell, styles.headerCell, { width: 130 }]}>Domain</Text>
-          <Text style={[styles.cell, styles.headerCell, { width: 90 }]}>Platform</Text>
-          <Text style={[styles.cell, styles.headerCell, { width: 170 }]}>Timestamp</Text>
-          <Text style={[styles.cell, styles.headerCell, { width: 240 }]}>Policy Outcome / Note</Text>
+          <Text style={[styles.headerCell, { width: 100 }]}>Status</Text>
+          <Text style={[styles.headerCell, { width: 230 }]}>Account</Text>
+          <Text style={[styles.headerCell, { width: 120 }]}>Domain</Text>
+          <Text style={[styles.headerCell, { width: 90 }]}>Client</Text>
+          <Text style={[styles.headerCell, { width: 150 }]}>Timestamp</Text>
+          <Text style={[styles.headerCell, { width: 240 }]}>Policy Result</Text>
         </View>
 
         {/* Table Rows */}
         {displayLogs.map((log) => {
           const isAllowed = log.status === 'ALLOWED';
           return (
-            <View key={log.id} style={[styles.row, !isAllowed && styles.restrictedRow]}>
-              <View style={[styles.cell, { width: 110 }]}>
+            <View key={log.id} style={styles.row}>
+              <View style={{ width: 100 }}>
                 <Badge
-                  label={log.status}
+                  label={isAllowed ? 'Allowed' : 'Blocked'}
                   variant={isAllowed ? 'success' : 'danger'}
+                  showDot
                 />
               </View>
+
               <Text style={[styles.cell, styles.emailCell, { width: 230 }]} numberOfLines={1}>
                 {log.email}
               </Text>
-              <Text style={[styles.cell, styles.codeCell, { width: 130 }]} numberOfLines={1}>
+
+              <Text style={[styles.cell, styles.domainCell, { width: 120 }]} numberOfLines={1}>
                 @{log.domain}
               </Text>
-              <View style={[styles.cell, { width: 90 }]}>
+
+              <View style={{ width: 90 }}>
                 <Badge
                   label={log.platform || 'web'}
                   variant="neutral"
                 />
               </View>
-              <Text style={[styles.cell, styles.timeCell, { width: 170 }]}>
+
+              <Text style={[styles.cell, styles.timeCell, { width: 150 }]}>
                 {formatTime(log.timestamp)}
               </Text>
+
               <Text
                 style={[
                   styles.cell,
                   styles.reasonCell,
-                  { width: 240, color: isAllowed ? '#15803d' : '#b91c1c' },
+                  { width: 240, color: isAllowed ? '#047857' : '#B91C1C' },
                 ]}
-                numberOfLines={2}
+                numberOfLines={1}
               >
                 {isAllowed
                   ? `Access granted (${log.role || 'user'})`
-                  : log.reason || 'Domain verification rejected'}
+                  : log.reason || 'Restricted domain mismatch'}
               </Text>
             </View>
           );
@@ -93,50 +102,42 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   table: {
-    minWidth: 970,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    overflow: 'hidden',
+    minWidth: 930,
     backgroundColor: '#ffffff',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#F1F5F9',
   },
   headerRow: {
-    backgroundColor: '#f8fafc',
-    borderBottomColor: '#e2e8f0',
-  },
-  restrictedRow: {
-    backgroundColor: '#fffcfc',
-  },
-  cell: {
-    paddingHorizontal: 6,
-    fontSize: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 8,
   },
   headerCell: {
-    fontWeight: '700',
-    color: '#475569',
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+  },
+  cell: {
+    fontSize: 13,
   },
   emailCell: {
-    fontWeight: '600',
-    color: '#0f172a',
+    fontWeight: '500',
+    color: '#0F172A',
   },
-  codeCell: {
-    fontFamily: Platform.select({ ios: 'Courier', android: 'monospace', default: 'monospace' }),
-    color: '#0284c7',
-    fontWeight: '600',
+  domainCell: {
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+    color: '#64748B',
+    fontSize: 12,
   },
   timeCell: {
-    color: '#64748b',
+    color: '#64748B',
     fontSize: 12,
   },
   reasonCell: {
@@ -144,11 +145,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   emptyContainer: {
-    padding: 24,
+    padding: 32,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#94a3b8',
-    fontSize: 14,
+    color: '#94A3B8',
+    fontSize: 13,
   },
 });

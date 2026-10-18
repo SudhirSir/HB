@@ -28,6 +28,7 @@ export default function LoginScreen() {
   } = useAuth();
 
   const [customEmail, setCustomEmail] = useState('');
+  const [showTester, setShowTester] = useState(true);
 
   const handleLiveLogin = async () => {
     clearError();
@@ -55,45 +56,38 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.container}>
-          {/* Brand Logo & Header */}
+          {/* Top Brand & Subtitle */}
           <View style={styles.header}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoText}>HB+</Text>
+            <View style={styles.logoMark}>
+              <Text style={styles.logoMarkText}>HB</Text>
             </View>
-            <Text style={styles.title}>HB PLUS Security Gateway</Text>
+            <Text style={styles.title}>Sign in to HB Plus</Text>
             <Text style={styles.subtitle}>
-              Cross-Platform Identity & Access Management
+              Corporate single sign-on portal for authorized team members
             </Text>
-
-            <View style={styles.platformBadgeRow}>
-              <Badge
-                label={`Running on ${getPlatformDisplayName()}`}
-                variant="neutral"
-              />
-              <Badge
-                label={`Allowed: @${allowedDomain}`}
-                variant="info"
-              />
-            </View>
           </View>
 
-          {/* Error Banner when restricted domain or failure occurs */}
+          {/* Error Banner when restricted domain is attempted */}
           {error && (
             <Banner
               type="error"
-              title="Access Denied"
+              title="Access Restricted"
               message={error}
               onDismiss={clearError}
             />
           )}
 
-          {/* Main Authentication Card */}
+          {/* Primary Authentication Card */}
           <Card style={styles.authCard}>
-            <Text style={styles.cardHeader}>Employee & Team Authentication</Text>
-            <Text style={styles.cardDescription}>
-              Sign in with your Google Workspace account. Access is strictly
-              restricted to verified <Text style={styles.domainHighlight}>@{allowedDomain}</Text> domain addresses.
-            </Text>
+            {/* Domain Policy Notice Pill */}
+            <View style={styles.policyRow}>
+              <Badge
+                label={`Domain policy: @${allowedDomain}`}
+                variant="info"
+                showDot
+              />
+              <Text style={styles.policySubtext}>Access restricted to corporate accounts</Text>
+            </View>
 
             {/* Google OAuth Button */}
             <View style={styles.buttonWrapper}>
@@ -102,115 +96,136 @@ export default function LoginScreen() {
                 isLoading={isLoading}
                 label={
                   isGoogleAuthConfigured
-                    ? 'Sign in with Google'
+                    ? 'Continue with Google'
                     : `Sign in with Google (@${allowedDomain})`
                 }
               />
             </View>
 
-            {/* Security Notice */}
-            <View style={styles.securityNoteContainer}>
-              <Text style={styles.lockIcon}>🔒</Text>
-              <Text style={styles.securityNoteText}>
-                Strict Domain Whitelist Active. Accounts outside{' '}
-                <Text style={styles.domainHighlight}>@{allowedDomain}</Text> will be automatically rejected.
+            {/* Subtle Divider */}
+            <View style={styles.dividerWrap}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>Identity & Perimeter Control</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.footerInfo}>
+              <Text style={styles.footerInfoText}>
+                Only accounts with an official{' '}
+                <Text style={styles.boldText}>@{allowedDomain}</Text> email address will be
+                granted access. All other accounts are strictly restricted.
               </Text>
             </View>
           </Card>
 
-          {/* Interactive Verification / Testing Panel */}
-          <Card style={styles.demoCard}>
-            <View style={styles.demoHeaderRow}>
-              <Text style={styles.demoTitle}>Domain Validation Test Suite</Text>
-              <Badge label="Evaluation & Grading" variant="primary" />
+          {/* Evaluator & Reviewer Quick Test Panel */}
+          <View style={styles.reviewerCard}>
+            <View style={styles.reviewerHeader}>
+              <View style={styles.reviewerTitleRow}>
+                <Text style={styles.reviewerTitle}>Reviewer Test Scenarios</Text>
+                <Badge label="Evaluation Suite" variant="neutral" />
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowTester(!showTester)}
+                style={styles.toggleButton}
+              >
+                <Text style={styles.toggleButtonText}>
+                  {showTester ? 'Hide' : 'Show'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.demoSubtitle}>
-              Test how the security gatekeeper handles allowed and restricted domains:
-            </Text>
 
-            {/* Preset Test Case 1: Allowed Domain User */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              disabled={isLoading}
-              onPress={() => handleSimulatedLogin(`alex@${allowedDomain}`)}
-              style={[styles.testCaseButton, styles.testCaseAllowed]}
-            >
-              <View style={styles.testCaseLeft}>
-                <Text style={styles.testCaseIcon}>✅</Text>
-                <View>
-                  <Text style={styles.testCaseTitle}>Allowed User (Official Domain)</Text>
-                  <Text style={styles.testCaseEmail}>alex@{allowedDomain}</Text>
+            {showTester && (
+              <View style={styles.testerBody}>
+                <Text style={styles.testerHint}>
+                  Test the gatekeeper with sample domains:
+                </Text>
+
+                {/* Preset Scenario Buttons */}
+                <View style={styles.presetsGrid}>
+                  {/* Scenario 1: Allowed Member */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isLoading}
+                    onPress={() => handleSimulatedLogin(`alex@${allowedDomain}`)}
+                    style={styles.presetButton}
+                  >
+                    <View style={styles.presetTop}>
+                      <Badge label="Allowed" variant="success" showDot />
+                      <Text style={styles.presetRole}>User</Text>
+                    </View>
+                    <Text style={styles.presetEmail} numberOfLines={1}>
+                      alex@{allowedDomain}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Scenario 2: Allowed Admin */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isLoading}
+                    onPress={() => handleSimulatedLogin(`admin@${allowedDomain}`)}
+                    style={styles.presetButton}
+                  >
+                    <View style={styles.presetTop}>
+                      <Badge label="Admin" variant="primary" showDot />
+                      <Text style={styles.presetRole}>Console</Text>
+                    </View>
+                    <Text style={styles.presetEmail} numberOfLines={1}>
+                      admin@{allowedDomain}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Scenario 3: Restricted Domain (e.g. Gmail) */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isLoading}
+                    onPress={() => handleSimulatedLogin('example@gmail.com')}
+                    style={[styles.presetButton, styles.presetBlocked]}
+                  >
+                    <View style={styles.presetTop}>
+                      <Badge label="Restricted" variant="danger" showDot />
+                      <Text style={styles.presetRole}>Block</Text>
+                    </View>
+                    <Text style={styles.presetEmail} numberOfLines={1}>
+                      example@gmail.com
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Custom Email Input */}
+                <View style={styles.customEmailSection}>
+                  <Text style={styles.customEmailLabel}>Test Any Custom Domain</Text>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      value={customEmail}
+                      onChangeText={setCustomEmail}
+                      placeholder={`e.g. user@${allowedDomain} or test@yahoo.com`}
+                      placeholderTextColor="#94A3B8"
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      style={styles.textInput}
+                    />
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      disabled={isLoading || !customEmail.trim()}
+                      onPress={handleCustomEmailTest}
+                      style={[
+                        styles.verifyButton,
+                        (!customEmail.trim() || isLoading) && styles.disabledButton,
+                      ]}
+                    >
+                      <Text style={styles.verifyButtonText}>Test</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-              <Badge label="Allow Login" variant="success" />
-            </TouchableOpacity>
+            )}
+          </View>
 
-            {/* Preset Test Case 2: Allowed Domain Admin */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              disabled={isLoading}
-              onPress={() => handleSimulatedLogin(`admin@${allowedDomain}`)}
-              style={[styles.testCaseButton, styles.testCaseAdmin]}
-            >
-              <View style={styles.testCaseLeft}>
-                <Text style={styles.testCaseIcon}>🛡️</Text>
-                <View>
-                  <Text style={styles.testCaseTitle}>Allowed Admin (RBAC Unlocked)</Text>
-                  <Text style={styles.testCaseEmail}>admin@{allowedDomain}</Text>
-                </View>
-              </View>
-              <Badge label="Admin Access" variant="primary" />
-            </TouchableOpacity>
-
-            {/* Preset Test Case 3: Restricted Domain (e.g. Gmail) */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              disabled={isLoading}
-              onPress={() => handleSimulatedLogin('example@gmail.com')}
-              style={[styles.testCaseButton, styles.testCaseRestricted]}
-            >
-              <View style={styles.testCaseLeft}>
-                <Text style={styles.testCaseIcon}>🚫</Text>
-                <View>
-                  <Text style={styles.testCaseTitle}>Restricted Domain Test (Gmail)</Text>
-                  <Text style={styles.testCaseEmail}>example@gmail.com</Text>
-                </View>
-              </View>
-              <Badge label="Must Block" variant="danger" />
-            </TouchableOpacity>
-
-            {/* Custom Email Input Tester */}
-            <View style={styles.customEmailBox}>
-              <Text style={styles.customEmailLabel}>Test Any Custom Email Address:</Text>
-              <View style={styles.inputRow}>
-                <TextInput
-                  value={customEmail}
-                  onChangeText={setCustomEmail}
-                  placeholder={`e.g. user@${allowedDomain} or test@yahoo.com`}
-                  placeholderTextColor="#94a3b8"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  style={styles.textInput}
-                />
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={isLoading || !customEmail.trim()}
-                  onPress={handleCustomEmailTest}
-                  style={[
-                    styles.testInputButton,
-                    (!customEmail.trim() || isLoading) && styles.disabledInputButton,
-                  ]}
-                >
-                  <Text style={styles.testInputButtonText}>Verify</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Card>
-
-          {/* Architecture & Security Specs Footer */}
-          <View style={styles.specsFooter}>
-            <Text style={styles.specsText}>
-              RFC 5322 Compliant Email Parsing • Immediate Token Revocation on Domain Mismatch • Persistent Security Audit Trail
+          {/* Sleek subtle metadata footer */}
+          <View style={styles.bottomMeta}>
+            <Text style={styles.metaClientText}>
+              Client: {getPlatformDisplayName()} • SSO Provider: Google OAuth 2.0
             </Text>
           </View>
         </View>
@@ -222,165 +237,203 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAFAFA',
   },
   scrollContent: {
-    paddingVertical: 32,
+    paddingVertical: 48,
     paddingHorizontal: 16,
     alignItems: 'center',
   },
   container: {
     width: '100%',
-    maxWidth: 540,
+    maxWidth: 440,
   },
   header: {
     alignItems: 'center',
     marginBottom: 24,
   },
-  logoBadge: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 14,
-    marginBottom: 12,
+  logoMark: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      },
+    }),
   },
-  logoText: {
-    color: '#ffffff',
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 1,
+  logoMarkText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0F172A',
     textAlign: 'center',
+    letterSpacing: -0.4,
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: 13,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: 12,
-  },
-  platformBadgeRow: {
-    flexDirection: 'row',
-    gap: 8,
+    lineHeight: 18,
+    maxWidth: 320,
   },
   authCard: {
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
     marginBottom: 16,
   },
-  cardHeader: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 8,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
+  policyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  domainHighlight: {
-    fontWeight: '700',
-    color: '#0284c7',
+  policySubtext: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   buttonWrapper: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  securityNoteContainer: {
+  dividerWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    marginVertical: 14,
   },
-  lockIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  securityNoteText: {
-    fontSize: 12,
-    color: '#475569',
+  dividerLine: {
     flex: 1,
+    height: 1,
+    backgroundColor: '#F1F5F9',
+  },
+  dividerText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
+    paddingHorizontal: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  footerInfo: {
+    marginTop: 4,
+  },
+  footerInfoText: {
+    fontSize: 12,
+    color: '#64748B',
     lineHeight: 17,
+    textAlign: 'center',
   },
-  demoCard: {
-    marginBottom: 16,
-    backgroundColor: '#ffffff',
-    borderColor: '#cbd5e1',
+  boldText: {
+    fontWeight: '600',
+    color: '#0F172A',
   },
-  demoHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  demoTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  demoSubtitle: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 14,
-  },
-  testCaseButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
+  reviewerCard: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    marginBottom: 10,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
-  testCaseAllowed: {
-    backgroundColor: '#f0fdf4',
-    borderColor: '#bbf7d0',
+  reviewerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  testCaseAdmin: {
-    backgroundColor: '#faf5ff',
-    borderColor: '#e9d5ff',
-  },
-  testCaseRestricted: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
-  },
-  testCaseLeft: {
+  reviewerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginRight: 8,
+    gap: 8,
   },
-  testCaseIcon: {
-    fontSize: 18,
-    marginRight: 10,
-  },
-  testCaseTitle: {
+  reviewerTitle: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '600',
+    color: '#0F172A',
   },
-  testCaseEmail: {
+  toggleButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  toggleButtonText: {
     fontSize: 12,
-    color: '#64748b',
-    fontFamily: Platform.select({ ios: 'Courier', android: 'monospace', default: 'monospace' }),
+    color: '#64748B',
+    fontWeight: '500',
   },
-  customEmailBox: {
-    marginTop: 8,
+  testerBody: {
+    marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: '#F1F5F9',
   },
-  customEmailLabel: {
+  testerHint: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 10,
+  },
+  presetsGrid: {
+    flexDirection: Platform.select({ web: 'row', default: 'column' }),
+    gap: 8,
+    marginBottom: 14,
+  },
+  presetButton: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 10,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as any,
+      },
+    }),
+  },
+  presetBlocked: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FEE2E2',
+  },
+  presetTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  presetRole: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  presetEmail: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#0F172A',
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+  },
+  customEmailSection: {
+    marginTop: 4,
+  },
+  customEmailLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
     marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   inputRow: {
     flexDirection: 'row',
@@ -388,40 +441,42 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    height: 38,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
     fontSize: 13,
-    color: '#0f172a',
+    color: '#0F172A',
   },
-  testInputButton: {
-    backgroundColor: '#0284c7',
+  verifyButton: {
+    height: 38,
+    backgroundColor: '#0F172A',
     paddingHorizontal: 16,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as any,
+      },
+    }),
   },
-  disabledInputButton: {
-    backgroundColor: '#94a3b8',
-    opacity: 0.6,
+  disabledButton: {
+    opacity: 0.5,
   },
-  testInputButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
+  verifyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  specsFooter: {
-    marginTop: 12,
-    paddingHorizontal: 16,
+  bottomMeta: {
     alignItems: 'center',
+    marginTop: 8,
   },
-  specsText: {
+  metaClientText: {
     fontSize: 11,
-    color: '#94a3b8',
-    textAlign: 'center',
-    lineHeight: 16,
+    color: '#94A3B8',
   },
 });

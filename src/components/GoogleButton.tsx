@@ -8,6 +8,7 @@ import {
   ViewStyle,
   Platform,
 } from 'react-native';
+import { GoogleIcon } from './GoogleIcon';
 
 interface GoogleButtonProps {
   onPress: () => void;
@@ -21,12 +22,12 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
   onPress,
   isLoading = false,
   disabled = false,
-  label = 'Sign in with Google',
+  label = 'Continue with Google',
   style,
 }) => {
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.88}
       onPress={onPress}
       disabled={disabled || isLoading}
       style={[
@@ -36,17 +37,17 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
       ]}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color="#1e293b" />
+        <View style={styles.loadingRow}>
+          <ActivityIndicator size="small" color="#0F172A" />
+          <Text style={styles.loadingText}>Authenticating with Google...</Text>
+        </View>
       ) : (
-        <>
-          <View style={styles.iconContainer}>
-            {/* Multi-colored Google "G" Icon in pure React Native elements */}
-            <View style={styles.googleGContainer}>
-              <Text style={styles.googleGLetter}>G</Text>
-            </View>
+        <View style={styles.contentRow}>
+          <View style={styles.iconWrapper}>
+            <GoogleIcon size={18} />
           </View>
           <Text style={styles.buttonText}>{label}</Text>
-        </>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -54,61 +55,62 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 48,
     backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#dadce0',
-    borderRadius: 12,
-    height: 50,
-    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
     ...Platform.select({
       web: {
         cursor: 'pointer' as any,
-        boxShadow: '0 1px 3px rgba(60,64,67, 0.08), 0 1px 2px rgba(60,64,67, 0.16)',
-        transition: 'all 0.15s ease-in-out',
+        transition: 'all 0.15s ease',
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
       },
       default: {
-        elevation: 2,
-        shadowColor: '#000',
+        elevation: 1,
+        shadowColor: '#000000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.12,
+        shadowOpacity: 0.05,
         shadowRadius: 2,
       },
     }),
   },
   disabledButton: {
-    opacity: 0.6,
+    opacity: 0.65,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
     ...Platform.select({
       web: {
         cursor: 'not-allowed' as any,
       },
     }),
   },
-  iconContainer: {
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapper: {
     marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleGContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4285F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleGLetter: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '800',
-    fontFamily: Platform.select({ ios: 'Helvetica Neue', android: 'Roboto', default: 'sans-serif' }),
   },
   buttonText: {
-    color: '#3c4043',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    color: '#0F172A',
+    letterSpacing: -0.1,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#475569',
   },
 });

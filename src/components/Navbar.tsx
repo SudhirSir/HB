@@ -23,37 +23,39 @@ export const Navbar: React.FC = () => {
   return (
     <View style={styles.header}>
       <View style={styles.innerContainer}>
-        {/* Brand / Logo */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => (user ? router.push('/dashboard') : router.push('/login'))}
-          style={styles.brandContainer}
-        >
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoText}>HB+</Text>
-          </View>
-          <View>
-            <Text style={styles.brandTitle}>HB PLUS</Text>
-            <Text style={styles.brandSubtitle}>Access Gateway</Text>
-          </View>
-        </TouchableOpacity>
+        {/* Left: Brand & Organization */}
+        <View style={styles.leftGroup}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => (user ? router.push('/dashboard') : router.push('/login'))}
+            style={styles.brandContainer}
+          >
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoText}>HB</Text>
+            </View>
+            <View style={styles.brandMeta}>
+              <View style={styles.titleRow}>
+                <Text style={styles.brandTitle}>HB Plus</Text>
+                <Text style={styles.titleSeparator}>/</Text>
+                <Text style={styles.workspaceLabel}>Workspace</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
 
-        {/* Navigation & User actions */}
-        {user ? (
-          <View style={styles.navActions}>
-            {/* Route Navigation Links */}
+          {/* Navigation Links for Authenticated Users */}
+          {user && (
             <View style={styles.navLinks}>
               <TouchableOpacity
                 onPress={() => router.push('/dashboard')}
                 style={[
-                  styles.navLink,
-                  pathname === '/dashboard' && styles.navLinkActive,
+                  styles.navItem,
+                  pathname === '/dashboard' && styles.navItemActive,
                 ]}
               >
                 <Text
                   style={[
-                    styles.navLinkText,
-                    pathname === '/dashboard' && styles.navLinkTextActive,
+                    styles.navItemText,
+                    pathname === '/dashboard' && styles.navItemTextActive,
                   ]}
                 >
                   Dashboard
@@ -64,14 +66,14 @@ export const Navbar: React.FC = () => {
                 <TouchableOpacity
                   onPress={() => router.push('/admin')}
                   style={[
-                    styles.navLink,
-                    pathname === '/admin' && styles.navLinkActive,
+                    styles.navItem,
+                    pathname === '/admin' && styles.navItemActive,
                   ]}
                 >
                   <Text
                     style={[
-                      styles.navLinkText,
-                      pathname === '/admin' && styles.navLinkTextActive,
+                      styles.navItemText,
+                      pathname === '/admin' && styles.navItemTextActive,
                     ]}
                   >
                     Admin Console
@@ -79,9 +81,13 @@ export const Navbar: React.FC = () => {
                 </TouchableOpacity>
               )}
             </View>
+          )}
+        </View>
 
-            {/* User Profile Pill */}
-            <View style={styles.userProfile}>
+        {/* Right: User Profile & Actions */}
+        {user ? (
+          <View style={styles.rightGroup}>
+            <View style={styles.userSection}>
               {user.avatar ? (
                 <Image source={{ uri: user.avatar }} style={styles.avatar} />
               ) : (
@@ -91,32 +97,37 @@ export const Navbar: React.FC = () => {
                   </Text>
                 </View>
               )}
-
-              <View style={styles.userInfo}>
+              <View style={styles.userTextWrap}>
                 <Text style={styles.userName} numberOfLines={1}>
                   {user.name}
                 </Text>
-                <View style={styles.badgesRow}>
-                  <Badge
-                    label={user.role}
-                    variant={user.role === 'admin' ? 'primary' : 'info'}
-                  />
-                </View>
+                <Text style={styles.userEmail} numberOfLines={1}>
+                  {user.email}
+                </Text>
               </View>
+              <Badge
+                label={user.role === 'admin' ? 'Admin' : 'Member'}
+                variant={user.role === 'admin' ? 'primary' : 'neutral'}
+                showDot
+                style={styles.roleBadge}
+              />
             </View>
 
-            {/* Logout Button */}
             <TouchableOpacity
-              activeOpacity={0.8}
+              activeOpacity={0.7}
               onPress={handleLogout}
               style={styles.logoutButton}
             >
-              <Text style={styles.logoutText}>Sign Out</Text>
+              <Text style={styles.logoutText}>Sign out</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.guestRight}>
-            <Badge label={`Domain: @${allowedDomain}`} variant="neutral" />
+          <View style={styles.guestGroup}>
+            <Badge
+              label={`@${allowedDomain}`}
+              variant="neutral"
+              showDot
+            />
           </View>
         )}
       </View>
@@ -128,135 +139,156 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    zIndex: 10,
+    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: 20,
+    height: 60,
+    justifyContent: 'center',
+    zIndex: 20,
     ...Platform.select({
       web: {
         position: 'sticky' as any,
         top: 0,
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
       },
     }),
   },
   innerContainer: {
-    maxWidth: 1200,
+    maxWidth: 1140,
     width: '100%',
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  leftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 24,
+  },
   brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   logoBadge: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 10,
   },
   logoText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  brandTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: 0.5,
+  brandMeta: {
+    justifyContent: 'center',
   },
-  brandSubtitle: {
-    fontSize: 11,
-    color: '#64748b',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  navActions: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+  },
+  brandTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  titleSeparator: {
+    fontSize: 13,
+    color: '#CBD5E1',
+    marginHorizontal: 6,
+  },
+  workspaceLabel: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
   },
   navLinks: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginRight: 4,
+    gap: 4,
   },
-  navLink: {
-    paddingHorizontal: 12,
+  navItem: {
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  navLinkActive: {
-    backgroundColor: '#f1f5f9',
+  navItemActive: {
+    backgroundColor: '#F1F5F9',
   },
-  navLinkText: {
-    fontSize: 14,
+  navItemText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+  },
+  navItemTextActive: {
+    color: '#0F172A',
     fontWeight: '600',
-    color: '#64748b',
   },
-  navLinkTextActive: {
-    color: '#0284c7',
-  },
-  userProfile: {
+  rightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 24,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    gap: 16,
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 10,
   },
   avatarFallback: {
-    backgroundColor: '#0284c7',
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarFallbackText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 12,
   },
-  userInfo: {
-    marginRight: 6,
+  userTextWrap: {
+    marginRight: 8,
   },
   userName: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontWeight: '600',
+    color: '#0F172A',
     maxWidth: 120,
   },
-  badgesRow: {
-    marginTop: 2,
+  userEmail: {
+    fontSize: 11,
+    color: '#94A3B8',
+    maxWidth: 120,
+  },
+  roleBadge: {
+    marginLeft: 4,
   },
   logoutButton: {
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as any,
+      },
+    }),
   },
   logoutText: {
-    color: '#dc2626',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
+    color: '#64748B',
   },
-  guestRight: {
+  guestGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },

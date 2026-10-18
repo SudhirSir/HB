@@ -36,10 +36,9 @@ export default function AdminScreen() {
       <View style={styles.screen}>
         <Navbar />
         <View style={styles.unauthorizedContainer}>
-          <Text style={styles.unauthorizedIcon}>🚫</Text>
-          <Text style={styles.unauthorizedTitle}>Access Restricted (Admin Only)</Text>
+          <Text style={styles.unauthorizedTitle}>Administrator Access Required</Text>
           <Text style={styles.unauthorizedDesc}>
-            Your account ({user?.email || 'Guest'}) does not have administrator privileges.
+            Your current account ({user?.email || 'Guest'}) does not hold super-admin permissions.
           </Text>
           <TouchableOpacity
             style={styles.backButton}
@@ -57,13 +56,13 @@ export default function AdminScreen() {
     const cleanDomain = newDomainInput.trim().toLowerCase().replace(/^@/, '');
     await updateAllowedDomain(cleanDomain);
     setNewDomainInput('');
-    setSuccessMsg(`Allowed domain successfully updated to @${cleanDomain}`);
-    setTimeout(() => setSuccessMsg(null), 4000);
+    setSuccessMsg(`Allowed domain updated to @${cleanDomain}`);
+    setTimeout(() => setSuccessMsg(null), 3500);
   };
 
   const handleClearLogs = async () => {
     if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to clear all authentication audit logs?')) {
+      if (window.confirm('Clear all recorded authentication audit logs?')) {
         await clearAuditLogs();
       }
     } else {
@@ -94,56 +93,58 @@ export default function AdminScreen() {
           {/* Header */}
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.pageCategory}>Role-Based Access Control</Text>
-              <Text style={styles.pageTitle}>Security Administration Console</Text>
+              <Text style={styles.pageTitle}>Security Administration</Text>
+              <Text style={styles.pageSubtitle}>
+                Domain whitelist management, identity directory, and perimeter telemetry
+              </Text>
             </View>
-            <Badge label="Super Admin Privileges" variant="primary" />
+            <Badge label="Super Admin" variant="primary" showDot />
           </View>
 
           {successMsg && (
             <View style={styles.successBanner}>
-              <Text style={styles.successText}>✅ {successMsg}</Text>
+              <Text style={styles.successText}>{successMsg}</Text>
             </View>
           )}
 
-          {/* Telemetry Grid */}
+          {/* Telemetry Metrics Row */}
           <View style={styles.metricsGrid}>
             <Card style={styles.metricCard}>
               <Text style={styles.metricValue}>{totalAttempts}</Text>
               <Text style={styles.metricTitle}>Total Auth Requests</Text>
-              <Text style={styles.metricSubtitle}>Recorded via OAuth gateway</Text>
+              <Text style={styles.metricSubtitle}>Through OAuth gatekeeper</Text>
             </Card>
 
             <Card style={styles.metricCard}>
-              <Text style={[styles.metricValue, { color: '#16a34a' }]}>{allowedCount}</Text>
-              <Text style={styles.metricTitle}>Authorized Logins</Text>
-              <Text style={styles.metricSubtitle}>Passed @{allowedDomain} rule</Text>
+              <Text style={[styles.metricValue, { color: '#047857' }]}>{allowedCount}</Text>
+              <Text style={styles.metricTitle}>Allowed Logins</Text>
+              <Text style={styles.metricSubtitle}>Matched @{allowedDomain}</Text>
             </Card>
 
             <Card style={styles.metricCard}>
-              <Text style={[styles.metricValue, { color: '#dc2626' }]}>{restrictedCount}</Text>
+              <Text style={[styles.metricValue, { color: '#B91C1C' }]}>{restrictedCount}</Text>
               <Text style={styles.metricTitle}>Blocked Attempts</Text>
               <Text style={styles.metricSubtitle}>Restricted domain mismatch</Text>
             </Card>
 
             <Card style={styles.metricCard}>
-              <Text style={[styles.metricValue, { color: '#7c3aed' }]}>{registeredUsers.length}</Text>
-              <Text style={styles.metricTitle}>Registered Profiles</Text>
+              <Text style={[styles.metricValue, { color: '#6D28D9' }]}>{registeredUsers.length}</Text>
+              <Text style={styles.metricTitle}>Directory Profiles</Text>
               <Text style={styles.metricSubtitle}>{enforcementRate}% compliance rate</Text>
             </Card>
           </View>
 
           {/* Domain Whitelist Configuration Card */}
           <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Domain Whitelist Policy Manager</Text>
+            <Text style={styles.sectionTitle}>Domain Whitelist Policy</Text>
             <Text style={styles.sectionDesc}>
-              Modify the primary allowed domain for the application in real-time. Only users
-              with Google accounts ending in this domain will be granted entry.
+              Update the active corporate domain. Only Google accounts belonging to this domain
+              will be allowed to authenticate.
             </Text>
 
             <View style={styles.domainConfigRow}>
-              <View style={styles.currentDomainBox}>
-                <Text style={styles.currentDomainLabel}>Current Whitelisted Domain:</Text>
+              <View style={styles.currentDomainPill}>
+                <Text style={styles.currentDomainLabel}>Active Policy:</Text>
                 <Text style={styles.currentDomainVal}>@{allowedDomain}</Text>
               </View>
 
@@ -152,7 +153,7 @@ export default function AdminScreen() {
                   value={newDomainInput}
                   onChangeText={setNewDomainInput}
                   placeholder="e.g. hbplus.fit or acme.org"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#94A3B8"
                   autoCapitalize="none"
                   style={styles.domainInput}
                 />
@@ -171,16 +172,16 @@ export default function AdminScreen() {
             </View>
           </Card>
 
-          {/* Registered Users Database Directory */}
+          {/* Registered Users Directory */}
           <Card style={styles.sectionCard}>
             <View style={styles.cardHeaderWithAction}>
               <View>
-                <Text style={styles.sectionTitle}>User Directory (Persistent Database)</Text>
+                <Text style={styles.sectionTitle}>User Directory</Text>
                 <Text style={styles.sectionDesc}>
-                  Profiles synchronized with secure database storage
+                  Profiles registered in the persistent corporate database
                 </Text>
               </View>
-              <Badge label={`${registeredUsers.length} Users`} variant="info" />
+              <Badge label={`${registeredUsers.length} Users`} variant="neutral" />
             </View>
 
             <View style={styles.usersList}>
@@ -203,11 +204,12 @@ export default function AdminScreen() {
 
                   <View style={styles.userMetaWrap}>
                     <Badge
-                      label={u.role.toUpperCase()}
-                      variant={u.role === 'admin' ? 'primary' : 'info'}
+                      label={u.role === 'admin' ? 'Super Admin' : 'Member'}
+                      variant={u.role === 'admin' ? 'primary' : 'neutral'}
+                      showDot
                     />
                     <Text style={styles.userMetaDate}>
-                      Last: {new Date(u.lastLoginAt).toLocaleDateString()}
+                      Last active: {new Date(u.lastLoginAt).toLocaleDateString()}
                     </Text>
                   </View>
                 </View>
@@ -221,7 +223,7 @@ export default function AdminScreen() {
               <View>
                 <Text style={styles.sectionTitle}>Global Authentication Audit Trail</Text>
                 <Text style={styles.sectionDesc}>
-                  Complete cryptographic security audit log of every login attempt
+                  Chronological security audit log of every login attempt
                 </Text>
               </View>
 
@@ -245,11 +247,11 @@ export default function AdminScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAFAFA',
   },
   scrollContent: {
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
   container: {
@@ -264,68 +266,70 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  pageCategory: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7c3aed',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
   pageTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  pageSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
   },
   successBanner: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: '#86efac',
-    borderRadius: 10,
+    borderColor: '#A7F3D0',
+    borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   successText: {
-    color: '#15803d',
-    fontWeight: '600',
+    color: '#047857',
+    fontWeight: '500',
     fontSize: 13,
   },
   metricsGrid: {
     flexDirection: Platform.select({ web: 'row', default: 'column' }),
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   metricCard: {
     flex: 1,
     padding: 16,
   },
   metricValue: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#0f172a',
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
     marginBottom: 2,
+    letterSpacing: -0.5,
   },
   metricTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#334155',
   },
   metricSubtitle: {
     fontSize: 11,
-    color: '#64748b',
+    color: '#94A3B8',
     marginTop: 2,
   },
   sectionCard: {
-    marginBottom: 20,
+    padding: 20,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 2,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.2,
   },
   sectionDesc: {
-    fontSize: 13,
-    color: '#64748b',
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
     marginBottom: 16,
   },
   cardHeaderWithAction: {
@@ -338,27 +342,28 @@ const styles = StyleSheet.create({
   },
   domainConfigRow: {
     flexDirection: Platform.select({ web: 'row', default: 'column' }),
-    gap: 16,
+    gap: 12,
     alignItems: Platform.select({ web: 'center', default: 'stretch' }),
   },
-  currentDomainBox: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
+  currentDomainPill: {
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   currentDomainLabel: {
-    fontSize: 11,
-    color: '#64748b',
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#64748B',
   },
   currentDomainVal: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0284c7',
-    marginTop: 2,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   domainInputWrapper: {
     flex: 1,
@@ -367,93 +372,103 @@ const styles = StyleSheet.create({
   },
   domainInput: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    height: 38,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
     fontSize: 13,
-    color: '#0f172a',
+    color: '#0F172A',
   },
   updateDomainButton: {
-    backgroundColor: '#0f172a',
+    height: 38,
+    backgroundColor: '#0F172A',
     paddingHorizontal: 16,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as any,
+      },
+    }),
   },
   disabledButton: {
-    backgroundColor: '#94a3b8',
-    opacity: 0.6,
+    opacity: 0.5,
   },
   updateDomainButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   usersList: {
-    gap: 10,
+    gap: 8,
   },
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#F1F5F9',
   },
   userAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    marginRight: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
   },
   userAvatarFallback: {
-    backgroundColor: '#0284c7',
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   userAvatarFallbackText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 12,
   },
   userInfoWrap: {
     flex: 1,
   },
   userNameText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   userEmailText: {
     fontSize: 12,
-    color: '#64748b',
-    fontFamily: Platform.select({ ios: 'Courier', android: 'monospace', default: 'monospace' }),
+    color: '#64748B',
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
   userMetaWrap: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: 2,
   },
   userMetaDate: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: '#94A3B8',
   },
   clearLogsButton: {
-    backgroundColor: '#fff1f2',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#fecdd3',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as any,
+      },
+    }),
   },
   clearLogsButtonText: {
-    color: '#e11d48',
+    color: '#64748B',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   unauthorizedContainer: {
     alignItems: 'center',
@@ -461,31 +476,28 @@ const styles = StyleSheet.create({
     padding: 32,
     marginTop: 60,
   },
-  unauthorizedIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
   unauthorizedTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#991b1b',
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 6,
   },
   unauthorizedDesc: {
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: 13,
+    color: '#64748B',
     textAlign: 'center',
-    maxWidth: 400,
+    maxWidth: 360,
     marginBottom: 20,
   },
   backButton: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   backButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
   },
 });
